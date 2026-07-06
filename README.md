@@ -85,32 +85,77 @@ The pipeline is strictly divided into 7 modules, executing sequentially. The sys
  └───────────────────────────────────────────────────────────┘
 ```
 
-### 📌 Mermaid Flowchart / Mermaid 系统流程图
+### 📌 System Module Relationship Diagram / 系统模块关系框图
 
 ```mermaid
-graph TD
-    classDef cpp fill:#f9f,stroke:#33,stroke-width:2px;
-    classDef remote fill:#bbf,stroke:#33,stroke-width:2px;
-
-    subgraph Remote GPU Inference [云端大模型推理]
-        M1[Module 1: Uploader]:::cpp -->|SCP Input Image| R1[Remote Server]
-        R1 --> M2[Module 2: FD Runner]:::cpp
-        M2 -->|Cosmos-3 Video Gen| M3[Module 3: LA Runner]:::cpp
-        M3 -->|LocateAnything 2D Box| R2[Remote Output]
+graph LR
+    %% ==========================================
+    %% 子图区域定义（输入与云端推理、本地高性能数据管道、可视化输出）
+    %% ==========================================
+    subgraph DataInference ["数据源与云端推理 (Data Source & Cloud Inference)"]
+        direction TB
+        InputImage["输入图像<br>InputImage.png"]
+        Uploader["Module 1: Uploader<br>本地图片安全上传"]
+        FD_Runner["Module 2: FD Runner<br>Cosmos-3 视频生成动力学推演"]
+        LA_Runner["Module 3: LA Runner<br>LocateAnything 2D目标检测"]
     end
 
-    subgraph Local C++ Data Pipeline [本地C++高性能数据管道]
-        R2 --> M4[Module 4: Downloader]:::cpp
-        M4 -->|SCP Download JSON/MP4| M5[Module 5: Target Tracker]:::cpp
-        M5 -->|Hungarian IoU + Smooth + ROI| M6[Module 6: Coord Transformer]:::cpp
-        M6 -->|2D IPM -> 3D ENU -> WGS-84| M7[Module 7: Risk Assessor]:::cpp
-        M7 -->|Dynamic Kinetic Field + Interpolation| P1[BEV Risk Grids]
+    subgraph LocalPipeline ["本地 C++ 数据处理管道 (Local C++ Data Pipeline)"]
+        direction TB
+        Downloader["Module 4: Downloader<br>SCP 数据同步拉取"]
+        TargetTracker["Module 5: Target Tracker<br>IoU 轨迹跟踪 + 引擎盖 ROI 过滤"]
+        CoordTransformer["Module 6: Coord Transformer<br>IPM 逆透视投影 & 坐标变换 (ENU/GPS)"]
+        RiskAssessor["Module 7: Risk Assessor<br>动态安全势能/动能场评估"]
     end
 
-    subgraph Visualization [数据可视化绘图]
-        P1 --> Python[Python Plotting Tools]
+    subgraph DownstreamOutput ["可视化与下游输出 (Downstream Outputs)"]
+        direction TB
+        TrajPlot["2D 轨迹投影图<br>trajectory_plot.png"]
+        RiskHeatmap["2D BEV 风险热力图<br>risk_heatmap.png"]
+        Risk3D["3D 等比例动能场图<br>risk_heatmap_3d.png"]
     end
-```
+
+    %% ==========================================
+    %% 模块连接与数据流向接口
+    %% ==========================================
+    InputImage -->|Local File| Uploader
+    Uploader -->|InputImage.png| FD_Runner
+    FD_Runner -->|OutputVideo.mp4| LA_Runner
+    LA_Runner -->|Detections & Trajectories| Downloader
+    
+    Downloader -->|OutputVideo_detected.json| TargetTracker
+    TargetTracker -->|2D Trajectories| CoordTransformer
+    Downloader -->|OutputVideo_ego_trajectory.json| CoordTransformer
+    
+    CoordTransformer -->|3D ENU & GPS Trajectories| RiskAssessor
+    
+    RiskAssessor -->|frame_result.json| TrajPlot
+    RiskAssessor -->|frame_result.json| RiskHeatmap
+    RiskAssessor -->|frame_result.json| Risk3D
+
+    %% ==========================================
+    %% 自定义风格样式（匹配示例图的黄/紫配色）
+    %% ==========================================
+    %% 子图（黄底）
+    style DataInference fill:#fefce8,stroke:#eab308,stroke-width:2px;
+    style LocalPipeline fill:#fefce8,stroke:#eab308,stroke-width:2px;
+    style DownstreamOutput fill:#fefce8,stroke:#eab308,stroke-width:2px;
+
+    %% 模块节点（紫底、深紫/蓝边框）
+    style InputImage fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style Uploader fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style FD_Runner fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style LA_Runner fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    
+    style Downloader fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style TargetTracker fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style CoordTransformer fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style RiskAssessor fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    
+    style TrajPlot fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style RiskHeatmap fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+    style Risk3D fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
+
 
 ---
 
