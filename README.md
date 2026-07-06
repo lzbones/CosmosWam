@@ -155,7 +155,7 @@ graph LR
     style TrajPlot fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
     style RiskHeatmap fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
     style Risk3D fill:#e8e5ff,stroke:#8b5cf6,stroke-width:1.5px;
-
+```
 
 ---
 
